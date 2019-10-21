@@ -66,7 +66,7 @@ function MdStep() {
 		scope.deselect = scope.deselect || angular.noop;
 
 		scope.$watch("active", function(active) {
-			if (active) ctrl.select(data.getIndex());
+			if (active) ctrl.updateIndex(data.getIndex());
 		});
 		scope.$watch("complete", function() {
 			ctrl.refreshIndex();

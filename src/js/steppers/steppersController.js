@@ -50,6 +50,7 @@ function MdSteppersController($scope, $element, $window, $mdConstant, $mdStepInk
   ctrl.attachRipple = attachRipple;
   ctrl.insertStep = insertStep;
   ctrl.removeStep = removeStep;
+  ctrl.updateIndex = updateIndex;
   ctrl.select = select;
   ctrl.scroll = scroll;
   ctrl.nextPage = nextPage;
@@ -288,13 +289,22 @@ function MdSteppersController($scope, $element, $window, $mdConstant, $mdStepInk
    * to fire user-added click events.
    * @param index
    */
-  function select(index) {
+  function updateIndex(index) {
     if (!locked)
       ctrl.focusIndex = ctrl.selectedIndex = index;
     ctrl.lastClick = true;
+  }
+
+  /**
+   * Update the selected index and trigger a click event on the original `md-step` element in order
+   * to fire user-added click events.
+   * @param index
+   */
+  function select(index) {
+    updateIndex(index)
     // nextTick is required to prevent errors in user-defined click events
     $mdUtil.nextTick(function() {
-      ctrl.steppers[index].element.triggerHandler('click');
+    ctrl.steppers[index].element.triggerHandler('click');
     }, false);
   }
 
@@ -421,12 +431,6 @@ function MdSteppersController($scope, $element, $window, $mdConstant, $mdStepInk
     updateHasContent();
     $mdUtil.nextTick(function() {
       updatePagination();
-      // if autoselect is enabled, select the newly added step
-      if (hasLoaded && ctrl.autoselect) $mdUtil.nextTick(function() {
-          $mdUtil.nextTick(function() {
-            select(ctrl.steppers.indexOf(step));
-          });
-        });
     });
     return step;
   }
