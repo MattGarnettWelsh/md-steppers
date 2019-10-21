@@ -23,85 +23,94 @@ angular.module('md-steppers', [
  * Based on md-tabs by angular material https://github.com/angular/material
  *
  */
-angular
-    .module('md-steppers')
-    .directive('mdStep', MdStep);
+angular.module("md-steppers").directive("mdStep", MdStep);
 
 function MdStep() {
-    return {
-        require: '^?mdSteppers',
-        terminal: true,
-        compile: function (element, attr) {
-            var label = firstChild(element, 'md-step-label'),
-                body = firstChild(element, 'md-step-body'),
-                actions = firstChild(element, 'md-step-actions');
+	return {
+		require: "^?mdSteppers",
+		terminal: true,
+		compile: function(element, attr) {
+			var label = firstChild(element, "md-step-label"),
+				body = firstChild(element, "md-step-body");
 
-            if (label.length == 0) {
-                label = angular.element('<md-step-label></md-step-label>');
-                if (attr.label) label.text(attr.label);
-                else label.append(element.contents());
+			if (label.length == 0) {
+				label = angular.element("<md-step-label></md-step-label>");
+				if (attr.label) label.text(attr.label);
+				else label.append(element.contents());
 
-                if (body.length == 0) {
-                    var contents = element.contents().detach();
-                    body = angular.element('<md-step-body></md-step-body>');
-                    body.append(contents);
-                }
-            }
+				if (body.length == 0) {
+					var contents = element.contents().detach();
+					body = angular.element("<md-step-body></md-step-body>");
+					body.append(contents);
+				}
+			}
 
-            element.append(label);
-            if (body.html()) element.append(body);
+			element.append(label);
+			if (body.html()) element.append(body);
 
-            return postLink;
-        },
-        scope: {
-            complete: '=?mdComplete',
-            active: '=?mdActive',
-            disabled: '=?ngDisabled',
-            select: '&?mdOnSelect',
-            deselect: '&?mdOnDeselect'
-        }
-    };
+			return postLink;
+		},
+		scope: {
+			complete: "=?mdComplete",
+			active: "=?mdActive",
+			disabled: "=?ngDisabled",
+			select: "&?mdOnSelect",
+			deselect: "&?mdOnDeselect"
+		}
+	};
 
-    function postLink(scope, element, attr, ctrl) {
-        if (!ctrl) return;
-        var index = ctrl.getStepElementIndex(element),
-            body = firstChild(element, 'md-step-body').remove(),
-            label = firstChild(element, 'md-step-label').remove(),
-            data = ctrl.insertStep({
-                scope: scope,
-                parent: scope.$parent,
-                index: index,
-                element: element,
-                template: body.html(),
-                label: label.html()
-            }, index);
+	function postLink(scope, element, attr, ctrl) {
+		if (!ctrl) return;
+		var index = ctrl.getStepElementIndex(element),
+			body = firstChild(element, "md-step-body").remove(),
+			label = firstChild(element, "md-step-label").remove(),
+			data = ctrl.insertStep(
+				{
+					scope: scope,
+					parent: scope.$parent,
+					index: index,
+					element: element,
+					template: body.html(),
+					label: label.html()
+				},
+				index
+			);
 
-        scope.select = scope.select || angular.noop;
-        scope.deselect = scope.deselect || angular.noop;
+		scope.select = scope.select || angular.noop;
+		scope.deselect = scope.deselect || angular.noop;
 
-        scope.$watch('active', function (active) { if (active) ctrl.select(data.getIndex()); });
-        scope.$watch('complete', function () { ctrl.refreshIndex(); });
-        scope.$watch('disabled', function () { ctrl.refreshIndex(); });
-        scope.$watch(
-            function () {
-                return ctrl.getStepElementIndex(element);
-            },
-            function (newIndex) {
-                data.index = newIndex;
-                ctrl.updateStepOrder();
-            }
-        );
-        scope.$on('$destroy', function () { ctrl.removeStep(data); });
-    }
+		scope.$watch("active", function(active) {
+			if (active) ctrl.updateIndex(data.getIndex());
+		});
+		scope.$watch("complete", function() {
+			ctrl.refreshIndex();
+		});
+		scope.$watch("disabled", function() {
+			ctrl.refreshIndex();
+		});
+		scope.$watch(
+			function() {
+				return ctrl.getStepElementIndex(element);
+			},
+			function(newIndex) {
+				data.index = newIndex;
+				ctrl.updateStepOrder();
+			}
+		);
+		scope.$on("$destroy", function() {
+			ctrl.removeStep(data);
+		});
+	}
 
-    function firstChild(element, tagName) {
-        var children = element[0].children;
-        for (var i = 0, len = children.length; i < len; i++) {
-            var child = children[i];
-            if (child.tagName === tagName.toUpperCase()) return angular.element(child);
-        }
-        return angular.element();
-    }
+	function firstChild(element, tagName) {
+		var children = element[0].children;
+		for (var i = 0, len = children.length; i < len; i++) {
+			var child = children[i];
+			if (child.tagName === tagName.toUpperCase())
+				return angular.element(child);
+		}
+		return angular.element();
+	}
 }
 
 angular
@@ -179,6 +188,7 @@ function MdSteppersController($scope, $element, $window, $mdConstant, $mdStepInk
   ctrl.attachRipple = attachRipple;
   ctrl.insertStep = insertStep;
   ctrl.removeStep = removeStep;
+  ctrl.updateIndex = updateIndex;
   ctrl.select = select;
   ctrl.scroll = scroll;
   ctrl.nextPage = nextPage;
@@ -417,13 +427,22 @@ function MdSteppersController($scope, $element, $window, $mdConstant, $mdStepInk
    * to fire user-added click events.
    * @param index
    */
-  function select(index) {
+  function updateIndex(index) {
     if (!locked)
       ctrl.focusIndex = ctrl.selectedIndex = index;
     ctrl.lastClick = true;
+  }
+
+  /**
+   * Update the selected index and trigger a click event on the original `md-step` element in order
+   * to fire user-added click events.
+   * @param index
+   */
+  function select(index) {
+    updateIndex(index)
     // nextTick is required to prevent errors in user-defined click events
     $mdUtil.nextTick(function() {
-      ctrl.steppers[index].element.triggerHandler('click');
+    ctrl.steppers[index].element.triggerHandler('click');
     }, false);
   }
 
@@ -550,12 +569,6 @@ function MdSteppersController($scope, $element, $window, $mdConstant, $mdStepInk
     updateHasContent();
     $mdUtil.nextTick(function() {
       updatePagination();
-      // if autoselect is enabled, select the newly added step
-      if (hasLoaded && ctrl.autoselect) $mdUtil.nextTick(function() {
-          $mdUtil.nextTick(function() {
-            select(ctrl.steppers.indexOf(step));
-          });
-        });
     });
     return step;
   }
@@ -929,7 +942,6 @@ function MdSteppersController($scope, $element, $window, $mdConstant, $mdStepInk
   }
 }
 
-
 /**
  * @ngdoc directive
  * @name mdSteppers
@@ -941,139 +953,121 @@ function MdSteppersController($scope, $element, $window, $mdConstant, $mdStepInk
  * TODO DOCS
  *
  */
-angular
-  .module('md-steppers')
-  .directive('mdSteppers', MdSteppers);
+angular.module("md-steppers").directive("mdSteppers", MdSteppers);
 
 function MdSteppers() {
-  return {
-    scope: {
-      selectedIndex: '=?mdSelected',
-      busyText: '=?mdBusyText',
-      busy: '=?mdBusy',
-      disableTabsBehavior: '=?mdDisableTabsBehavior'
-    },
-    template: function(element, attr) {
-      attr["$mdSteppersTemplate"] = element.html();
+	return {
+		scope: {
+			selectedIndex: "=?mdSelected",
+			busyText: "=?mdBusyText",
+			busy: "=?mdBusy",
+			disableTabsBehavior: "=?mdDisableTabsBehavior"
+		},
+		template: function(element, attr) {
+			attr["$mdSteppersTemplate"] = element.html();
 
-      var ngClick = attr.mdDisableTabsBehavior ?
-        '' :
-        'ng-click="$mdSteppersCtrl.select(step.getIndex())" ';
-        var mdStepClass = attr.mdDisableTabsBehavior ? 'class="md-step md-step-nopointer" ': 'class="md-step" ';
-      return ['',
-        '<md-steppers-wrapper> ',
-        '<md-step-data></md-step-data> ' ,
-        // '<md-prev-button ' ,
-        //     'tabindex="-1" ' ,
-        //     'role="button" ' ,
-        //     'aria-label="Previous Page" ' ,
-        //     'aria-disabled="{{!$mdSteppersCtrl.canPageBack()}}" ' ,
-        //     'ng-class="{ \'md-disabled\': !$mdSteppersCtrl.canPageBack() }" ' ,
-        //     'ng-if="$mdSteppersCtrl.shouldPaginate" ' ,
-        //     'ng-click="$mdSteppersCtrl.previousPage()"> ' ,
-        //   '<md-icon md-svg-icon="md-tabs-arrow"></md-icon> ' ,
-        // '</md-prev-button> ' ,
-        // '<md-next-button ' ,
-        //     'tabindex="-1" ' ,
-        //     'role="button" ' ,
-        //     'aria-label="Next Page" ' ,
-        //     'aria-disabled="{{!$mdSteppersCtrl.canPageForward()}}" ' ,
-        //     'ng-class="{ \'md-disabled\': !$mdSteppersCtrl.canPageForward() }" ' ,
-        //     'ng-if="$mdSteppersCtrl.shouldPaginate" ' ,
-        //     'ng-click="$mdSteppersCtrl.nextPage()"> ' ,
-        //   '<md-icon md-svg-icon="md-tabs-arrow"></md-icon> ' ,
-        // '</md-next-button> ' ,
-        '<md-steppers-canvas ',
-        'tabindex="{{ $mdSteppersCtrl.hasFocus ? -1 : 0 }}" ',
-        'aria-activedescendant="step-item-{{$mdSteppersCtrl.steppers[$mdSteppersCtrl.focusIndex].id}}" ',
-        'ng-focus="$mdSteppersCtrl.redirectFocus()" ',
-        'ng-class="{ ',
-        '\'md-paginated\': $mdSteppersCtrl.shouldPaginate, ',
-        '\'md-center-steppers\': $mdSteppersCtrl.shouldCenterSteppers ',
-        '}" ',
-        'ng-keydown="$mdSteppersCtrl.keydown($event)" ',
-        'role="tablist"> ',
-        '<md-busy ng-show="$mdSteppersCtrl.busy">{{$mdSteppersCtrl.busyText}}</md-busy>',
-        '<md-pagination-wrapper ',
-        'ng-class="{ \'md-center-steppers\': $mdSteppersCtrl.shouldCenterSteppers }" ',
-        'md-step-scroll="$mdSteppersCtrl.scroll($event)"> ',
-        '<md-step-item ',
-        'tabindex="-1" ',
-        mdStepClass,
-        'style="max-width: {{ $mdSteppersCtrl.maxStepWidth + \'px\' }}" ',
-        'ng-repeat="step in $mdSteppersCtrl.steppers" ',
-        'role="tab" ',
-        'aria-controls="step-content-{{::step.id}}" ',
-        'aria-selected="{{step.isActive()}}" ',
-        'aria-disabled="{{step.scope.disabled || \'false\'}}" ',
-        ngClick,
-        'ng-class="{ ',
-        '\'md-active\':    step.isActive(), ',
-        '\'md-focused\':   step.hasFocus(), ',
-        '\'md-disabled\':  step.scope.disabled, ',
-        '\'md-complete\':  step.scope.complete ',
-        '}" ',
-        'ng-disabled="step.scope.disabled" ',
-        'md-swipe-left="$mdSteppersCtrl.nextPage()" ',
-        'md-swipe-right="$mdSteppersCtrl.previousPage()" ',
-        'md-scope="::step.parent"><md-step-label-wrapper ',
-        'stepindex="{{::$index+1}}" ',
-        'md-steppers-template="::step.label" ',
-        'md-scope="::step.parent" ',
-        '></md-step-label-wrapper>',
-        '</md-step-item> ',
-        //'<md-ink-bar></md-ink-bar> ' ,
-        '</md-pagination-wrapper> ',
-        '<div class="md-visually-hidden md-dummy-wrapper"> ',
-        '<md-dummy-step ',
-        'class="md-step" ',
-        'tabindex="-1" ',
-        'stepindex="{{::$index+1}}" ',
-        'id="step-item-{{::step.id}}" ',
-        'role="tab" ',
-        'aria-controls="step-content-{{::step.id}}" ',
-        'aria-selected="{{step.isActive()}}" ',
-        'aria-disabled="{{step.scope.disabled || \'false\'}}" ',
-        'ng-focus="$mdSteppersCtrl.hasFocus = true" ',
-        'ng-blur="$mdSteppersCtrl.hasFocus = false" ',
-        'ng-repeat="step in $mdSteppersCtrl.steppers" ',
-        'md-scope="::step.parent"><md-step-label-wrapper ',
-        'stepindex="{{::$index+1}}" ',
-        'md-steppers-template="::step.label" ',
-        'md-scope="::step.parent" ',
-        '></md-step-label-wrapper></md-dummy-step> ',
-        '</div> ',
-        '</md-steppers-canvas> ',
-        '</md-steppers-wrapper> ',
-        '<md-steppers-content-wrapper ng-show="$mdSteppersCtrl.hasContent && $mdSteppersCtrl.selectedIndex >= 0"> ',
-        '<md-step-content ',
-        'id="step-content-{{::step.id}}" ',
-        'role="tabpanel" ',
-        'aria-labelledby="step-item-{{::step.id}}" ',
-        'md-swipe-left="$mdSteppersCtrl.swipeContent && $mdSteppersCtrl.incrementIndex(1)" ',
-        'md-swipe-right="$mdSteppersCtrl.swipeContent && $mdSteppersCtrl.incrementIndex(-1)" ',
-        'ng-if="$mdSteppersCtrl.hasContent" ',
-        'ng-repeat="(index, step) in $mdSteppersCtrl.steppers" ',
-        'ng-class="{ ',
-        '\'md-no-transition\': $mdSteppersCtrl.lastSelectedIndex == null, ',
-        '\'md-active\':        step.isActive(), ',
-        '\'md-left\':          step.isLeft(), ',
-        '\'md-right\':         step.isRight(), ',
-        '\'md-no-scroll\':     $mdSteppersCtrl.dynamicHeight ',
-        '}"> ',
-        '<div ',
-        'md-steppers-template="::step.template" ',
-        'md-connected-if="step.isActive()" ',
-        'md-scope="::step.parent" ',
-        'ng-if="$mdSteppersCtrl.enableDisconnect || step.shouldRender()"></div> ',
-        '</md-step-content> ',
-        '</md-steppers-content-wrapper>'].join('');
-    },
-    controller: 'MdSteppersController',
-    controllerAs: '$mdSteppersCtrl',
-    bindToController: true
-  };
+			var ngClick = attr.mdDisableTabsBehavior
+				? ""
+				: 'ng-click="$mdSteppersCtrl.select(step.getIndex())" ';
+			var mdStepClass = attr.mdDisableTabsBehavior
+				? 'class="md-step md-step-nopointer" '
+				: 'class="md-step" ';
+			return [
+				"",
+				"<md-steppers-wrapper> ",
+				"<md-step-data></md-step-data> ",
+				"<md-steppers-canvas ",
+				'tabindex="{{ $mdSteppersCtrl.hasFocus ? -1 : 0 }}" ',
+				'aria-activedescendant="step-item-{{$mdSteppersCtrl.steppers[$mdSteppersCtrl.focusIndex].id}}" ',
+				'ng-focus="$mdSteppersCtrl.redirectFocus()" ',
+				'ng-class="{ ',
+				"'md-paginated': $mdSteppersCtrl.shouldPaginate, ",
+				"'md-center-steppers': $mdSteppersCtrl.shouldCenterSteppers ",
+				'}" ',
+				'ng-keydown="$mdSteppersCtrl.keydown($event)" ',
+				'role="tablist"> ',
+				'<md-busy ng-show="$mdSteppersCtrl.busy">{{$mdSteppersCtrl.busyText}}</md-busy>',
+				"<md-pagination-wrapper ",
+				"ng-class=\"{ 'md-center-steppers': $mdSteppersCtrl.shouldCenterSteppers }\" ",
+				'md-step-scroll="$mdSteppersCtrl.scroll($event)"> ',
+				"<md-step-item ",
+				'tabindex="-1" ',
+				mdStepClass,
+				"style=\"max-width: {{ $mdSteppersCtrl.maxStepWidth + 'px' }}\" ",
+				'ng-repeat="step in $mdSteppersCtrl.steppers" ',
+				'role="tab" ',
+				'aria-controls="step-content-{{::step.id}}" ',
+				'aria-selected="{{step.isActive()}}" ',
+				"aria-disabled=\"{{step.scope.disabled || 'false'}}\" ",
+				ngClick,
+				'ng-class="{ ',
+				"'md-active':    step.isActive(), ",
+				"'md-focused':   step.hasFocus(), ",
+				"'md-disabled':  step.scope.disabled, ",
+				"'md-complete':  step.scope.complete ",
+				'}" ',
+				'ng-disabled="step.scope.disabled" ',
+				'md-swipe-left="$mdSteppersCtrl.nextPage()" ',
+				'md-swipe-right="$mdSteppersCtrl.previousPage()" ',
+				'md-scope="::step.parent"><md-step-label-wrapper ',
+				'stepindex="{{::$index+1}}" ',
+				'md-steppers-template="::step.label" ',
+				'md-scope="::step.parent" ',
+				"></md-step-label-wrapper>",
+				"</md-step-item> ",
+				"</md-pagination-wrapper> ",
+				'<div class="md-visually-hidden md-dummy-wrapper"> ',
+				"<md-dummy-step ",
+				'class="md-step" ',
+				'tabindex="-1" ',
+				'stepindex="{{::$index+1}}" ',
+				'id="step-item-{{::step.id}}" ',
+				'role="tab" ',
+				'aria-controls="step-content-{{::step.id}}" ',
+				'aria-selected="{{step.isActive()}}" ',
+				"aria-disabled=\"{{step.scope.disabled || 'false'}}\" ",
+				'ng-focus="$mdSteppersCtrl.hasFocus = true" ',
+				'ng-blur="$mdSteppersCtrl.hasFocus = false" ',
+				'ng-repeat="step in $mdSteppersCtrl.steppers" ',
+				'md-scope="::step.parent"><md-step-label-wrapper ',
+				'stepindex="{{::$index+1}}" ',
+				'md-steppers-template="::step.label" ',
+				'md-scope="::step.parent" ',
+				"></md-step-label-wrapper></md-dummy-step> ",
+				"</div> ",
+				"</md-steppers-canvas> ",
+				"</md-steppers-wrapper> ",
+				'<md-steppers-content-wrapper ng-show="$mdSteppersCtrl.hasContent && $mdSteppersCtrl.selectedIndex >= 0"> ',
+				"<md-step-content ",
+				'id="step-content-{{::step.id}}" ',
+				'role="tabpanel" ',
+				'aria-labelledby="step-item-{{::step.id}}" ',
+				'md-swipe-left="$mdSteppersCtrl.swipeContent && $mdSteppersCtrl.incrementIndex(1)" ',
+				'md-swipe-right="$mdSteppersCtrl.swipeContent && $mdSteppersCtrl.incrementIndex(-1)" ',
+				'ng-if="$mdSteppersCtrl.hasContent" ',
+				'ng-repeat="(index, step) in $mdSteppersCtrl.steppers" ',
+				'ng-class="{ ',
+				"'md-no-transition': $mdSteppersCtrl.lastSelectedIndex == null, ",
+				"'md-active':        step.isActive(), ",
+				"'md-left':          step.isLeft(), ",
+				"'md-right':         step.isRight(), ",
+				"'md-no-scroll':     $mdSteppersCtrl.dynamicHeight ",
+				'}"> ',
+				"<div ",
+				'md-steppers-template="::step.template" ',
+				'md-connected-if="step.isActive()" ',
+				'md-scope="::step.parent" ',
+				'ng-if="$mdSteppersCtrl.enableDisconnect || step.shouldRender()"></div> ',
+				"</md-step-content> ",
+				"</md-steppers-content-wrapper>"
+			].join("");
+		},
+		controller: "MdSteppersController",
+		controllerAs: "$mdSteppersCtrl",
+		bindToController: true
+	};
 }
+
 angular
     .module('md-steppers')
     .directive('mdSteppersTemplate', MdSteppersTemplate);
